@@ -1,0 +1,25 @@
+BasedOnStyle: Mozilla
+
+IndentWidth: 4
+ContinuationIndentWidth: 3
+ConstructorInitializerIndentWidth: 1
+AccessModifierOffset: -3
+ColumnLimit: 100
+
+PPIndentWidth: 1
+IndentPPDirectives: AfterHash
+
+IndentExternBlock: NoIndent
+IndentCaseLabels: false
+
+AlignAfterOpenBracket: AlwaysBreak
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Empty
+
+PointerAlignment: Right
+AlignEscapedNewlines: DontAlign
+AlignOperands: DontAlign
+
