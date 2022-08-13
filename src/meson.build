@@ -4,6 +4,7 @@ executable(
     'synth',
     [
         'main.c',
+        'window.c',
         'synth.c',
     ],
 

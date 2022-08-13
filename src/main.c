@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "synth.h"
+#include "window.h"
 
 void
 audio_callback(void *userdata, uint8_t *byte_stream, int byte_len);
@@ -41,24 +42,8 @@ main(void)
        SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
     SDL_PauseAudioDevice(audio_device, 0);
 
-    SDL_Window *window =
-       SDL_CreateWindow("Synth", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 256, 256, 0);
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-
-    cairo_surface_t *cr_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 256, 256);
-    cairo_t *cr = cairo_create(cr_surface);
-
-    SDL_Surface *window_surface = SDL_CreateRGBSurfaceFrom(
-       cairo_image_surface_get_data(cr_surface),
-       256,
-       256,
-       32,
-       cairo_image_surface_get_stride(cr_surface),
-       0x00FF0000,
-       0x0000FF00,
-       0x000000FF,
-       0);
-    SDL_Texture *window_texture = SDL_CreateTextureFromSurface(renderer, window_surface);
+    window_state_t window;
+    window_init(&window);
 
     SDL_Scancode pressed_scancode = 0;
     size_t active_voice = 0;
@@ -70,6 +55,12 @@ main(void)
             switch (event.type) {
             case SDL_QUIT:
                 running = false;
+                break;
+
+            case SDL_WINDOWEVENT:
+                if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    window_resize(&window, event.window.data1, event.window.data2);
+                }
                 break;
 
             // Warning. ACHTUNG, EVEN!!!
@@ -92,33 +83,32 @@ main(void)
             }
         }
 
-        SDL_UpdateTexture(window_texture, NULL, window_surface->pixels, window_surface->pitch);
-        SDL_RenderCopy(renderer, window_texture, NULL, NULL);
+        SDL_UpdateTexture(
+           window.texture, NULL, window.sdl_surface->pixels, window.sdl_surface->pitch);
+        SDL_RenderCopy(window.renderer, window.texture, NULL, NULL);
 
-        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 1.0);
-        cairo_paint(cr);
+        cairo_set_source_rgba(window.cairo, 0.0, 0.0, 0.0, 1.0);
+        cairo_paint(window.cairo);
 
-        cairo_new_path(cr);
-        cairo_move_to(cr, -1.0, 128.0);
+        float half_height = window.heightf * 0.5f;
+        cairo_new_path(window.cairo);
         for (size_t i = 0; i < state.vis_buffer_len; ++i) {
-            float x = (float)i / ((float)state.vis_buffer_len / 256.0);
-            float y = 128.0 - state.vis_buffer[i] * 128.0;
-            cairo_line_to(cr, x, y);
+            float x = (float)i / ((float)state.vis_buffer_len / window.widthf);
+            float y = half_height - state.vis_buffer[i] * half_height;
+            if (i == 0) {
+                cairo_move_to(window.cairo, x, y);
+            } else {
+                cairo_line_to(window.cairo, x, y);
+            }
         }
-        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
-        cairo_stroke(cr);
+        cairo_set_source_rgba(window.cairo, 1.0, 1.0, 1.0, 1.0);
+        cairo_stroke(window.cairo);
 
-        SDL_RenderPresent(renderer);
+        SDL_RenderPresent(window.renderer);
     }
 
-    cairo_destroy(cr);
-    cairo_surface_destroy(cr_surface);
-
+    window_destroy(&window);
     SDL_CloseAudioDevice(audio_device);
-    SDL_DestroyTexture(window_texture);
-    SDL_FreeSurface(window_surface);
-    SDL_DestroyWindow(window);
-    SDL_DestroyRenderer(renderer);
 
     return 0;
 }
