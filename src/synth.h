@@ -23,6 +23,9 @@ typedef struct
     // This minimal example implements a monosynth.
     // Turn this into an array for polyphony.
     synth_voice_t mono_voice;
+
+    size_t vis_buffer_len;
+    float vis_buffer[256];
 } synth_state_t;
 
 /// Initializes the synth for playback at the given sample rate.

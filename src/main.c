@@ -2,7 +2,9 @@
 #include <stdbool.h>
 
 #include <SDL.h>
+#include <cairo.h>
 
+#include "common.h"
 #include "synth.h"
 
 void
@@ -36,16 +38,27 @@ main(void)
        0,    // iscapture
        &desired_audio_spec,
        &obtained_audio_spec,
-       // This example does not assume a particular buffer size for wider compatibility.
-       // It's not like supporting varying buffer sizes is that hard anyways, unlike different
-       // channel layouts/sample formats, which only obfuscates code.
-       // Those conversions aren't hard to handle but aren't the primary purpose of this example.
        SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
     SDL_PauseAudioDevice(audio_device, 0);
 
-    // Need a window to receive keyboard events.
-    SDL_Window *window = SDL_CreateWindow(
-       "Synth", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 128, 128, SDL_WINDOW_RESIZABLE);
+    SDL_Window *window =
+       SDL_CreateWindow("Synth", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 256, 256, 0);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
+    cairo_surface_t *cr_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 256, 256);
+    cairo_t *cr = cairo_create(cr_surface);
+
+    SDL_Surface *window_surface = SDL_CreateRGBSurfaceFrom(
+       cairo_image_surface_get_data(cr_surface),
+       256,
+       256,
+       32,
+       cairo_image_surface_get_stride(cr_surface),
+       0x00FF0000,
+       0x0000FF00,
+       0x000000FF,
+       0);
+    SDL_Texture *window_texture = SDL_CreateTextureFromSurface(renderer, window_surface);
 
     SDL_Scancode pressed_scancode = 0;
     size_t active_voice = 0;
@@ -78,10 +91,34 @@ main(void)
             } break;
             }
         }
+
+        SDL_UpdateTexture(window_texture, NULL, window_surface->pixels, window_surface->pitch);
+        SDL_RenderCopy(renderer, window_texture, NULL, NULL);
+
+        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 1.0);
+        cairo_paint(cr);
+
+        cairo_new_path(cr);
+        cairo_move_to(cr, -1.0, 128.0);
+        for (size_t i = 0; i < state.vis_buffer_len; ++i) {
+            float x = (float)i / ((float)state.vis_buffer_len / 256.0);
+            float y = 128.0 - state.vis_buffer[i] * 128.0;
+            cairo_line_to(cr, x, y);
+        }
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+        cairo_stroke(cr);
+
+        SDL_RenderPresent(renderer);
     }
 
+    cairo_destroy(cr);
+    cairo_surface_destroy(cr_surface);
+
     SDL_CloseAudioDevice(audio_device);
+    SDL_DestroyTexture(window_texture);
+    SDL_FreeSurface(window_surface);
     SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(renderer);
 
     return 0;
 }

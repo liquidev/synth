@@ -4,6 +4,10 @@
 #include <math.h>
 #include <string.h>
 
+#include "common.h"
+
+#include <stdio.h>
+
 void
 synth_init(synth_state_t *state, float sample_rate)
 {
@@ -62,5 +66,10 @@ synth_output(synth_state_t *state, float *output_buffer, size_t sample_count)
     memset(output_buffer, 0, sample_count * sizeof(float));
     for (size_t i = 0; i < sample_count; ++i) {
         output_buffer[i] = synthesize_voice(&state->mono_voice) * 0.2f;
+    }
+    state->vis_buffer_len =
+       sample_count > ARRAY_LEN(state->vis_buffer) ? ARRAY_LEN(state->vis_buffer) : sample_count;
+    for (size_t i = 0; i < state->vis_buffer_len; ++i) {
+        state->vis_buffer[i] = output_buffer[i];
     }
 }

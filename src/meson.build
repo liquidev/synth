@@ -8,7 +8,8 @@ executable(
     ],
 
     dependencies: [
+        cc.find_library('m', required: false),
         dependency('sdl2'),
-        cc.find_library('m', required: false)
+        dependency('cairo'),
     ]
 )
